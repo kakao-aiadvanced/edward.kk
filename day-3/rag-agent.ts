@@ -1,5 +1,8 @@
 import { Document } from "@langchain/core/documents";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
+import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
+import { createRetrievalChain } from "langchain/chains/retrieval";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { initLogger } from "../lib/logger";
@@ -25,11 +28,35 @@ async function searchDocuments(
   return await vectorStore.similaritySearch(query, 3);
 }
 
-async function main() {
-  console.log("RAG Agent 시작");
+async function buildRAGChain(vectorStore: MemoryVectorStore) {
+  const retriever = vectorStore.asRetriever(3);
+  const llm = new ChatOpenAI({ modelName: "gpt-4o-mini", temperature: 0 });
 
-  // OpenAI 모델 초기화
-  const model = new ChatOpenAI({ modelName: "gpt-4o-mini", temperature: 0 });
+  const systemTemplate = [
+    `You are an assistant for question-answering tasks. `,
+    `Use the following pieces of retrieved context to answer `,
+    `the question. If you don't know the answer, say that you `,
+    `don't know. Use three sentences maximum and keep the `,
+    `answer concise.`,
+    `\n\n`,
+    `{context}`,
+  ].join("");
+
+  const prompt = ChatPromptTemplate.fromMessages([
+    ["system", systemTemplate],
+    ["human", "{input}"],
+  ]);
+
+  const questionAnswerChain = await createStuffDocumentsChain({ llm, prompt });
+  const chain = createRetrievalChain({
+    retriever,
+    combineDocsChain: questionAnswerChain,
+  });
+  return chain;
+}
+
+async function main() {
+  console.log("\n---\n\nRAG Agent 시작");
 
   // 벡터 저장소 생성 (실제 데이터로 대체 필요)
   const sampleTexts = [
@@ -40,24 +67,19 @@ async function main() {
   const vectorStore = await createVectorStore(sampleTexts);
   console.log("벡터 저장소 생성 완료");
 
+  // RAG 체인 구축
+  const ragChain = await buildRAGChain(vectorStore);
+  console.log("RAG 체인 구축 완료");
+
   // 사용자 질문
   const question = "RAG에 대한 저자의 생각은 무엇인가?";
   console.log(`질문: ${question}`);
 
-  // 문서 검색
-  const relevantDocs = await searchDocuments(vectorStore, question);
-  console.log(
-    "관련 문서 검색 완료:",
-    relevantDocs.map((doc) => doc.pageContent),
-  );
+  // RAG를 사용하여 답변 생성
+  const result = await ragChain.invoke({ input: question });
+  console.log(`답변: ${result.answer}`);
 
-  // 여기에 검색 결과를 바탕으로 답변 생성 로직 추가 예정
-
-  // 임시 응답 (나중에 실제 RAG 로직으로 대체 예정)
-  const response = await model.predict(
-    "이 질문에 대한 답변을 생성해주세요: " + question,
-  );
-  console.log(`답변: ${response}`);
+  console.log("\n---");
 }
 
 main().catch(console.error);
