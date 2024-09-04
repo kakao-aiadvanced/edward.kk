@@ -74,10 +74,40 @@ async function routeQuestion(
     ["human", "{question}"],
   ]);
 
-  const routingChain = routingPrompt.pipe(llm).pipe(new JsonOutputParser());
-  const result = (await routingChain.invoke({ question })) as any;
+  const routingChain = routingPrompt
+    .pipe(llm)
+    .pipe(new JsonOutputParser<{ datasource: "web_search" | "vectorstore" }>());
+  const result = await routingChain.invoke({ question });
 
   return result.datasource;
+}
+
+async function checkHallucination(
+  answer: string,
+  documents: Document[],
+): Promise<boolean> {
+  const llm = new ChatOpenAI({ modelName: "gpt-4o-mini", temperature: 0 });
+
+  const hallucinationCheckPrompt = ChatPromptTemplate.fromMessages([
+    [
+      "system",
+      `You are a grader assessing whether an answer is grounded in / supported by a set of facts. 
+      Give a binary 'yes' or 'no' score to indicate whether the answer is grounded in / supported by the given documents. 
+      Provide the binary score as a JSON with a single key 'score' and no preamble or explanation.`,
+    ],
+    ["human", `Documents: {documents}\n\nAnswer: {answer}`],
+  ]);
+
+  const hallucinationCheckChain = hallucinationCheckPrompt
+    .pipe(llm)
+    .pipe(new JsonOutputParser<{ score: "yes" | "no" }>());
+
+  const result = await hallucinationCheckChain.invoke({
+    documents: documents.map((doc) => doc.pageContent).join("\n"),
+    answer,
+  });
+
+  return result.score.toLowerCase() === "no";
 }
 
 async function main() {
@@ -105,14 +135,30 @@ async function main() {
   const routingDecision = await routeQuestion(question, indexTopics);
   console.log(`라우팅 결정: ${routingDecision}`);
 
+  let answer: string;
+  let relevantDocs: Document[];
+
   if (routingDecision === "vectorstore") {
     // RAG를 사용하여 답변 생성
     const result = await ragChain.invoke({ input: question });
-    console.log(`답변: ${result.answer}`);
+    answer = result.answer;
+    relevantDocs = result.context;
   } else {
     // 웹 검색 로직 (아직 구현되지 않음)
-    console.log(`웹 검색 기능은 아직 구현되지 않았습니다.`);
+    answer = "웹 검색 기능은 아직 구현되지 않았습니다.";
+    relevantDocs = [];
   }
+
+  // 환각 체크
+  const isHallucination = await checkHallucination(answer, relevantDocs);
+  if (isHallucination) {
+    console.log("환각이 감지되었습니다. 답변을 재생성합니다.");
+    // 여기에 답변 재생성 로직 추가
+    answer =
+      "환각이 감지되어 답변을 재생성해야 합니다. (재생성 로직은 아직 구현되지 않았습니다.)";
+  }
+
+  console.log(`최종 답변: ${answer}`);
 
   console.log("\n---");
 }
