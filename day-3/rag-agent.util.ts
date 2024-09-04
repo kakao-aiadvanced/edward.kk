@@ -1,3 +1,4 @@
+import { TavilySearchAPIRetriever } from "@langchain/community/retrievers/tavily_search_api";
 import { Document } from "@langchain/core/documents";
 import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
@@ -143,4 +144,19 @@ export async function gradeDocuments(
   }
 
   return relevantDocs;
+}
+
+export async function webSearch(query: string): Promise<Document[]> {
+  const retriever = new TavilySearchAPIRetriever({
+    apiKey: process.env.TAVILY_API_KEY,
+    k: 3,
+  });
+
+  try {
+    const results = await retriever.invoke(query);
+    return results;
+  } catch (error) {
+    console.error("웹 검색 중 오류 발생:", error);
+    return [];
+  }
 }

@@ -6,12 +6,13 @@ import {
   createVectorStore,
   gradeDocuments,
   routeQuestion,
+  webSearch,
 } from "./rag-agent.util";
 
 async function main() {
   // 로거 초기화
   initLogger("./day-3/rag-agent.log");
-  console.log("\n---\n\n");
+  console.log("\n---\n");
 
   // 벡터 저장소 생성 (실제 데이터로 대체 필요)
   const sampleTexts = [
@@ -27,7 +28,7 @@ async function main() {
   console.log("RAG 체인 구축 완료");
 
   // 사용자 질문
-  const question = "RAG의 탄생일은?";
+  const question = "리오넬 메시은 몇번 출전했나요?";
   console.log(`질문: ${question}`);
 
   // 라우팅 결정
@@ -35,8 +36,8 @@ async function main() {
   const routingDecision = await routeQuestion(question, indexTopics);
   console.log(`라우팅 결정: ${routingDecision}`);
 
-  let answer: string;
-  let relevantDocs: Document[];
+  let answer: string = "";
+  let relevantDocs: Document[] = [];
 
   if (routingDecision === "vectorstore") {
     // RAG를 사용하여 답변 생성
@@ -46,23 +47,34 @@ async function main() {
     // 문서 평가
     relevantDocs = await gradeDocuments(question, initialDocs);
 
-    if (relevantDocs.length === 0) {
-      console.log("관련 문서가 없습니다. 웹 검색으로 전환합니다.");
-
-      // 웹 검색 로직 (아직 구현되지 않음)
-      answer = "웹 검색 기능은 아직 구현되지 않았습니다.";
-    } else {
-      // 관련 문서를 사용하여 답변 생성
+    if (relevantDocs.length) {
       const answerResult = await ragChain.invoke({
         input: question,
         context: relevantDocs,
       });
       answer = answerResult.answer;
+    } else {
+      console.log("관련 문서가 없습니다. 웹 검색으로 전환합니다.");
     }
-  } else {
-    // 웹 검색 로직 (아직 구현되지 않음)
-    answer = "웹 검색 기능은 아직 구현되지 않았습니다.";
-    relevantDocs = [];
+  }
+
+  if (!answer) {
+    // 웹 검색 로직
+    console.log("웹 검색을 수행합니다.");
+    relevantDocs = await webSearch(question);
+
+    if (relevantDocs.length) {
+      const answerResult = await ragChain.invoke({
+        input: question,
+        context: relevantDocs,
+      });
+      answer = answerResult.answer;
+      console.log("웹 검색에 성공했습니다.");
+    } else {
+      answer = "최종 답변: 웹 검색 결과를 찾을 수 없습니다.";
+      console.log("\n---");
+      return;
+    }
   }
 
   // 환각 체크
@@ -70,12 +82,12 @@ async function main() {
   if (isHallucination) {
     console.log("환각이 감지되었습니다. 답변을 재생성합니다.");
     // 여기에 답변 재생성 로직 추가
+    console.log("기존 답변:", answer);
     answer =
       "환각이 감지되어 답변을 재생성해야 합니다. (재생성 로직은 아직 구현되지 않았습니다.)";
   }
 
   console.log(`최종 답변: ${answer}`);
-
   console.log("\n---");
 }
 
