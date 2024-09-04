@@ -160,3 +160,11 @@ export async function webSearch(query: string): Promise<Document[]> {
     return [];
   }
 }
+
+export function getSourceInfo(docs: Document[]): string {
+  if (docs.length === 0) return "출처 없음";
+
+  const source =
+    docs[0].metadata.source || docs[0].metadata.url || "알 수 없는 출처";
+  return `출처: ${source}`;
+}

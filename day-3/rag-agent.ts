@@ -5,6 +5,7 @@ import {
   buildRAGChain,
   checkHallucination,
   createVectorStore,
+  getSourceInfo,
   gradeDocuments,
   routeQuestion,
   webSearch,
@@ -89,7 +90,12 @@ async function main() {
   }
 
   console.log(`\n최종 답변: ${answer}`);
+  console.log(getSourceInfo(relevantDocs));
   console.log("\n---");
 }
 
-main().catch(console.error);
+main()
+  .catch(console.error)
+  .finally(() => {
+    process.exit(0);
+  });
