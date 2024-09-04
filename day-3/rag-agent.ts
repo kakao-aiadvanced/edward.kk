@@ -1,4 +1,5 @@
 import { Document } from "@langchain/core/documents";
+import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
@@ -55,8 +56,32 @@ async function buildRAGChain(vectorStore: MemoryVectorStore) {
   return chain;
 }
 
+async function routeQuestion(
+  question: string,
+  indexTopics: string,
+): Promise<string> {
+  const llm = new ChatOpenAI({ modelName: "gpt-4o-mini", temperature: 0 });
+
+  const routingPrompt = ChatPromptTemplate.fromMessages([
+    [
+      "system",
+      `You are an expert at routing a user question to a vectorstore or web search.
+      Use the vectorstore for questions on the following topics: ${indexTopics}.
+      You do not need to be stringent with the keywords in the question related to these topics.
+      Otherwise, use web-search. Give a binary choice 'web_search' or 'vectorstore' based on the question.
+      Return the choice as a JSON with a single key 'datasource' and no preamble or explanation.`,
+    ],
+    ["human", "{question}"],
+  ]);
+
+  const routingChain = routingPrompt.pipe(llm).pipe(new JsonOutputParser());
+  const result = (await routingChain.invoke({ question })) as any;
+
+  return result.datasource;
+}
+
 async function main() {
-  console.log("\n---\n\nRAG Agent 시작");
+  console.log("\n---\n\n");
 
   // 벡터 저장소 생성 (실제 데이터로 대체 필요)
   const sampleTexts = [
@@ -75,9 +100,19 @@ async function main() {
   const question = "RAG에 대한 저자의 생각은 무엇인가?";
   console.log(`질문: ${question}`);
 
-  // RAG를 사용하여 답변 생성
-  const result = await ragChain.invoke({ input: question });
-  console.log(`답변: ${result.answer}`);
+  // 라우팅 결정
+  const indexTopics = "RAG, 검색 증강 생성, fine-tuning";
+  const routingDecision = await routeQuestion(question, indexTopics);
+  console.log(`라우팅 결정: ${routingDecision}`);
+
+  if (routingDecision === "vectorstore") {
+    // RAG를 사용하여 답변 생성
+    const result = await ragChain.invoke({ input: question });
+    console.log(`답변: ${result.answer}`);
+  } else {
+    // 웹 검색 로직 (아직 구현되지 않음)
+    console.log(`웹 검색 기능은 아직 구현되지 않았습니다.`);
+  }
 
   console.log("\n---");
 }
