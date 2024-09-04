@@ -4,7 +4,8 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "rag": "tsx --no-warnings --env-file=.env ./day-2/rag.ts"
+    "rag": "tsx --no-warnings --env-file=.env ./day-2/rag.ts",
+    "rag-agent": "tsx --no-warnings --env-file=.env ./day-3/rag-agent.ts"
   },
   "keywords": [],
   "author": "",
