@@ -109,6 +109,6 @@ async function main() {
 
 main()
   .catch(console.error)
-  .finally(() => {
-    process.exit(0);
+  .finally(async () => {
+    setTimeout(() => process.exit(0), 1000);
   });
