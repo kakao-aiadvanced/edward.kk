@@ -107,3 +107,40 @@ export async function checkHallucination(
 
   return result.score.toLowerCase() === "no";
 }
+
+export async function gradeDocuments(
+  question: string,
+  documents: Document[],
+): Promise<Document[]> {
+  const llm = new ChatOpenAI({ modelName: "gpt-4o-mini", temperature: 0 });
+
+  const gradePrompt = ChatPromptTemplate.fromMessages([
+    [
+      "system",
+      `You are an expert at assessing the relevance of documents to a given question. 
+      Evaluate if the document is relevant to answering the question.
+      Give a binary 'yes' or 'no' score to indicate whether the document is relevant.
+      Provide the binary score as a JSON with a single key 'score' and no preamble or explanation.`,
+    ],
+    ["human", `Question: {question}\n\nDocument: {document}`],
+  ]);
+
+  const gradeChain = gradePrompt
+    .pipe(llm)
+    .pipe(new JsonOutputParser<{ score: "yes" | "no" }>());
+
+  const relevantDocs: Document[] = [];
+
+  for (const doc of documents) {
+    const result = await gradeChain.invoke({
+      question,
+      document: doc.pageContent,
+    });
+
+    if (result.score.toLowerCase() === "yes") {
+      relevantDocs.push(doc);
+    }
+  }
+
+  return relevantDocs;
+}

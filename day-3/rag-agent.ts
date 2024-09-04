@@ -4,6 +4,7 @@ import {
   buildRAGChain,
   checkHallucination,
   createVectorStore,
+  gradeDocuments,
   routeQuestion,
 } from "./rag-agent.util";
 
@@ -26,7 +27,7 @@ async function main() {
   console.log("RAG 체인 구축 완료");
 
   // 사용자 질문
-  const question = "RAG에 대한 저자의 생각은 무엇인가?";
+  const question = "RAG의 탄생일은?";
   console.log(`질문: ${question}`);
 
   // 라우팅 결정
@@ -40,8 +41,24 @@ async function main() {
   if (routingDecision === "vectorstore") {
     // RAG를 사용하여 답변 생성
     const result = await ragChain.invoke({ input: question });
-    answer = result.answer;
-    relevantDocs = result.context;
+    const initialDocs = result.context;
+
+    // 문서 평가
+    relevantDocs = await gradeDocuments(question, initialDocs);
+
+    if (relevantDocs.length === 0) {
+      console.log("관련 문서가 없습니다. 웹 검색으로 전환합니다.");
+
+      // 웹 검색 로직 (아직 구현되지 않음)
+      answer = "웹 검색 기능은 아직 구현되지 않았습니다.";
+    } else {
+      // 관련 문서를 사용하여 답변 생성
+      const answerResult = await ragChain.invoke({
+        input: question,
+        context: relevantDocs,
+      });
+      answer = answerResult.answer;
+    }
   } else {
     // 웹 검색 로직 (아직 구현되지 않음)
     answer = "웹 검색 기능은 아직 구현되지 않았습니다.";
