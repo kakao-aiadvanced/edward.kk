@@ -1,0 +1,61 @@
+---CALL AGENT---
+---DECIDE TO RETRIEVE---
+---DECISION: RETRIEVE---
+Output from node: 'agent'
+---
+
+Output from node: 'retrieve'
+---
+
+---GET RELEVANCE---
+---CHECK RELEVANCE---
+---DECISION: DOCS NOT RELEVANT---
+Output from node: 'gradeDocuments'
+---
+
+---TRANSFORM QUERY---
+Output from node: 'rewrite'
+---
+
+---CALL AGENT---
+---DECIDE TO RETRIEVE---
+Output from node: 'agent'
+---
+
+{
+  "messages": [
+    {
+      "lc": 1,
+      "type": "constructor",
+      "id": [
+        "langchain_core",
+        "messages",
+        "AIMessageChunk"
+      ],
+      "kwargs": {
+        "content": "Lilian Weng's blog post describes two main types of agent memory:\n\n1. **Memory Stream**:\n   - This is a long-term memory module (external database) that records a comprehensive list of agents’ experiences in natural language.\n   - Each element in the memory stream is an observation or an event directly provided by the agent.\n   - Inter-agent communication can trigger new natural language statements to be added to the memory stream.\n\n2. **Retrieval Model**:\n   - This model surfaces the context to inform the agent’s behavior based on relevance, recency, and importance.\n   - It helps in retrieving the most pertinent information from the memory stream to guide the agent's actions and decisions.\n\nThese memory types enable agents to behave based on past experiences and interact effectively with other agents.",
+        "additional_kwargs": {},
+        "response_metadata": {
+          "estimatedTokenUsage": {
+            "promptTokens": 280,
+            "completionTokens": 159,
+            "totalTokens": 439
+          },
+          "prompt": 0,
+          "completion": 0,
+          "finish_reason": "stop",
+          "system_fingerprint": "fp_157b3831f5"
+        },
+        "tool_call_chunks": [],
+        "id": "chatcmpl-A3fT9QU77LIOgaxtlqEw5yVZjbrYl",
+        "usage_metadata": {
+          "input_tokens": 363,
+          "output_tokens": 160,
+          "total_tokens": 523
+        },
+        "tool_calls": [],
+        "invalid_tool_calls": []
+      }
+    }
+  ]
+}

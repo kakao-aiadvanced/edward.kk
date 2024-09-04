@@ -6,7 +6,8 @@
   "scripts": {
     "rag": "tsx --no-warnings --env-file=.env ./day-2/rag.ts",
     "rag-agent": "tsx --no-warnings --env-file=.env ./day-3/rag-agent.ts",
-    "test:rag-agent": "tsx --no-warnings --env-file=.env ./day-3/rag-agent.test.ts"
+    "test:rag-agent": "tsx --no-warnings --env-file=.env ./day-3/rag-agent.test.ts",
+    "rag-graph-agent": "tsx --no-warnings --env-file=.env ./day-3/rag-graph-agent.ts"
   },
   "keywords": [],
   "author": "",
@@ -14,9 +15,13 @@
   "dependencies": {
     "@langchain/community": "^0.2.31",
     "@langchain/core": "^0.2.31",
+    "@langchain/langgraph": "^0.2.2",
     "@langchain/openai": "^0.2.8",
+    "@langchain/textsplitters": "^0.0.3",
     "cheerio": "^1.0.0",
-    "langchain": "^0.2.17"
+    "langchain": "^0.2.17",
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.23.2"
   },
   "devDependencies": {
     "@types/node": "^22.5.2",
