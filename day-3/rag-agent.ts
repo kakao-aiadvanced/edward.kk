@@ -7,6 +7,7 @@ import {
   createVectorStore,
   getSourceInfo,
   gradeDocuments,
+  regenerateAnswer,
   routeQuestion,
   webSearch,
 } from "./rag-agent.util";
@@ -80,13 +81,25 @@ async function main() {
   }
 
   // 환각 체크
-  const isHallucination = await checkHallucination(answer, relevantDocs);
-  if (isHallucination) {
-    console.log("환각이 감지되었습니다. 답변을 재생성합니다.");
-    // 여기에 답변 재생성 로직 추가
+  let isHallucination = await checkHallucination(answer, relevantDocs);
+  let regenerationAttempts = 0;
+  const maxRegenerationAttempts = 3;
+
+  while (isHallucination && regenerationAttempts < maxRegenerationAttempts) {
+    console.log(
+      `환각이 감지되었습니다. 답변을 재생성합니다. (시도 ${regenerationAttempts + 1}/${maxRegenerationAttempts})`,
+    );
     console.log("기존 답변:", answer);
-    answer =
-      "환각이 감지되어 답변을 재생성해야 합니다. (재생성 로직은 아직 구현되지 않았습니다.)";
+
+    answer = await regenerateAnswer(question, answer, relevantDocs, ragChain);
+    isHallucination = await checkHallucination(answer, relevantDocs);
+    regenerationAttempts++;
+  }
+
+  if (isHallucination) {
+    console.log(
+      "최대 재생성 시도 횟수를 초과했습니다. 가장 최근 생성된 답변을 사용합니다.",
+    );
   }
 
   console.log(`\n최종 답변: ${answer}`);

@@ -168,3 +168,26 @@ export function getSourceInfo(docs: Document[]): string {
     docs[0].metadata.source || docs[0].metadata.url || "알 수 없는 출처";
   return `출처: ${source}`;
 }
+
+export async function regenerateAnswer(
+  question: string,
+  previousAnswer: string,
+  relevantDocs: Document[],
+  ragChain: any,
+): Promise<string> {
+  const prompt = `
+  원래 질문: ${question}
+  이전 답변: ${previousAnswer}
+  
+  위의 답변에서 환각이 감지되었습니다. 제공된 문서 내용만을 바탕으로 더욱 신중하고 정확한 답변을 생성해주세요.
+  확실하지 않은 정보는 포함하지 말고, 문서에 없는 내용은 추측하지 마세요.
+  문서에 관련 정보가 없다면 "제공된 정보만으로는 정확한 답변을 할 수 없습니다."라고 대답해주세요.
+  `;
+
+  const result = await ragChain.invoke({
+    input: prompt,
+    context: relevantDocs,
+  });
+
+  return result.answer;
+}
